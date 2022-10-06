@@ -43,41 +43,7 @@ class Window;
 class Application;
 
 class SmartObject;
-/*
-class ColorIndex {
 
-
-
-
-};
-
-class Palette {
-
-public:
-	
-	std::map<std::string, ImColor> colors;
-
-};
-
-class Language {
-public:
-
-	std::vector<char*> regs;
-	std::map<int, std::string> matches;
-
-};
-
-class StyleParser {
-public:
-	Palette* palette;
-	Language* language;
-
-	void styleString(std::string str);
-
-
-};
-
-*/
 
 class Component {
 
@@ -156,6 +122,8 @@ public:
 	ImVec2 pos;
 
 	ImVec2 size;
+
+	bool focused;
 
 	std::vector<Component*> components;
 
