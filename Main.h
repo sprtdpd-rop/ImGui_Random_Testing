@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 #include"imgui.h"
 #include"imgui_impl_glfw.h"
 #include"imgui_impl_opengl3.h"
@@ -24,6 +25,7 @@
 #include <cmath>
 #include <regex>
 #include <map>
+#include <algorithm>
 
 #include <sys/stat.h>
 #if defined (WIN32) || defined (_WIN32) || defined (__WIN32)
@@ -57,7 +59,6 @@ public:
 };
 
 
-
 class TextInfo {
 public:
 	ImFont* font;
@@ -68,24 +69,40 @@ public:
 
 class TextDisplay : public Component {
 public:
-	std::string text;
+	std::string text = "";
 
 	TextInfo* info;
 
 	Window* parent;
 
-	TextDisplay(std::string text, ImVec2 pos, TextInfo * info, Window * parent);
+	std::vector<int>* indexes;
+
+	int lines = 0;
+
+	int cursor = 0;
+
+	TextDisplay(std::string text, ImVec2 pos, TextInfo* info, Window* parent);
+
+	void calculateIndexes();
+
+	float getLineWidth(int line);
+
+	std::string getLine(int line);
+
+	int currentMouseLine();
+
+	int currentLine();
+
+	void drawCursor();
+
+	float currentMouseLinePixel();
+
+	int currentMouseCharacter();
 
 	int render();
 
 
 };
-
-
-
-
-
-
 
 class SmartObject {
 
@@ -106,13 +123,7 @@ class SmartText : public SmartObject {
 
 public:
 	std::string str;
-
-
-
-
 };
-
-
 
 class Window {
 public:
@@ -135,10 +146,7 @@ public:
 
 	void render();
 
-
-
 };
-
 
 
 class Application {
@@ -156,11 +164,5 @@ public:
 
 	int render();
 };
-
-
-
-
-
-
 
 
