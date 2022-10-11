@@ -34,50 +34,19 @@ void TextDisplay::calculateIndexes() {
 
 	indexes = new vector<int>();
 
-	if (text.size() == 0) return;
-
 	indexes->push_back(0);
+
+	if (text.size() == 0) return;	
 
 	for (int i = 0; i < text.length(); i++) {
 
 		if (text[i] == '\n') {
-			i++;
-			indexes->push_back(i);
+			
+			indexes->push_back(i + 1);
 			lines++;
 		}
 
 	}
-
-	for (int i = 0; i < indexes->size(); i++) {
-
-		cout << (*indexes)[i] << ", ";
-
-	}
-
-}
-
-float TextDisplay::getLineWidth(int line) {
-
-	calculateIndexes();
-
-	int index = indexes->at(line);
-
-	char current = text[index];
-
-	float size = 0;
-
-	while (index < text.length() && text[index] != '\n') {
-
-		current = text[index];
-
-		size += info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, string(1, current).c_str()).x;
-
-		index++;
-
-	}
-
-	return size;
-
 
 }
 
@@ -96,8 +65,6 @@ int TextDisplay::currentLine() {
 
 
 string TextDisplay::getLine(int line) {
-
-	calculateIndexes();
 
 	int index = indexes->at(line);
 
@@ -146,33 +113,6 @@ int TextDisplay::currentMouseLine() {
 
 }
 
-float TextDisplay::currentMouseLinePixel() {
-
-	ImGuiIO& io = ImGui::GetIO();
-
-	ImVec2 mPos = io.MousePos;
-
-
-	ImVec2 currentPos = parent->pos + pos;
-
-	float y_pos = currentPos.y;
-
-	float standard_y = info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, " ").y;
-
-	int i;
-
-	for (i = 0; i < lines; i++) {
-
-		if (mPos.y > y_pos && mPos.y < y_pos + standard_y) break;
-
-
-		y_pos += standard_y;
-	}
-
-	return y_pos;
-
-}
-
 int TextDisplay::currentMouseCharacter() {
 
 	ImGuiIO& io = ImGui::GetIO();
@@ -185,7 +125,6 @@ int TextDisplay::currentMouseCharacter() {
 
 	ImVec2 currentPos = parent->pos + pos;
 
-	currentPos.y = currentMouseLinePixel();
 
 
 	int index = 0;
@@ -203,8 +142,6 @@ int TextDisplay::currentMouseCharacter() {
 
 	}
 
-	cout << endl << (*indexes)[line_number] + index << endl;
-
 	return (*indexes)[line_number] + index;
 
 
@@ -215,24 +152,147 @@ int TextDisplay::currentMouseCharacter() {
 
 void TextDisplay::drawCursor() {
 
-	int c_line = currentLine();
+	std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 
-	int excessIndex = cursor - indexes->at(c_line);
+	auto duration = now.time_since_epoch();
+	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 
-	float y_pos = parent->pos.y + pos.y + (c_line * (info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, "I").y));
+	if (millis % 1000 > 500) {
+		float y_comp = info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, "I").y;
 
-	float x_pos = parent->pos.x + pos.x;
+		int c_line = currentLine();
 
-	for (int i = 0; i < excessIndex; i++) { 
+		int excessIndex = cursor - indexes->at(c_line);
 
-		char currentChar = text[(indexes->at(c_line) + i)];
-		
-		x_pos += (info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, string(1, currentChar).c_str()).x);
-	
-	
+		float y_pos = parent->pos.y + pos.y + (c_line * (y_comp));
+
+		float x_pos = parent->pos.x + pos.x;
+
+		for (int i = 0; i < excessIndex; i++) {
+
+			char currentChar = text[(indexes->at(c_line) + i)];
+
+			x_pos += (info->font->CalcTextSizeA(info->font->FontSize, FLT_MAX, -1.0f, string(1, currentChar).c_str()).x);
+
+
+		}
+
+		parent->drawList->AddRect(ImVec2(x_pos, y_pos), ImVec2(x_pos + 0.5, y_pos + y_comp), ImGui::ColorConvertFloat4ToU32(info->color->operator ImVec4()));
 	}
 
-	parent->drawList->AddRect(ImVec2(x_pos, y_pos), ImVec2(x_pos + 1, y_pos + 10), ImGui::ColorConvertFloat4ToU32(info->color->operator ImVec4()));
+}
+
+void TextDisplay::handleKeys() {
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+		cursor = currentMouseCharacter();
+	}
+
+
+	if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+
+		text.insert(cursor, "\n");
+
+		cursor++;
+
+
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
+		if (cursor >= 1) {
+			text.erase(cursor - 1, 1);
+
+			cursor--;
+		}
+
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_Delete)) {
+		if (cursor <= text.size() - 1) {
+			text.erase(cursor, 1);
+		}
+
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+		if (cursor >= 1) cursor--;
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+		if (cursor <= text.size() - 1) cursor++;
+
+
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
+
+		int cl = currentLine();
+
+		if (cl <= 0) {}
+		else {
+
+			int difference = indexes->at(cl) - indexes->at(cl - 1);
+
+			if (cursor - difference >= indexes->at(cl)) {
+
+				cursor = indexes->at(cl) - 1;
+
+			}
+			else {
+				cursor -= difference;
+			}
+			cursor = max(cursor, 0);
+
+
+		}
+
+
+	}
+
+	if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
+
+		int cl = currentLine();
+
+		if (cl >= indexes->size() - 1) {}
+		else {
+
+			int difference = indexes->at(cl + 1) - indexes->at(cl);
+
+			if (cl < indexes->size() - 2 && cursor + difference > indexes->at(cl + 2)) {
+
+				cursor = indexes->at(cl + 2) - 1;
+
+			}
+			else {
+
+				cursor += difference;
+			}
+
+
+			cursor = min(cursor, (int)text.size());
+
+
+		}
+
+
+	}
+
+	if (!io.InputQueueCharacters.empty())
+	{
+		for (int i = 0; i < io.InputQueueCharacters.Size; i++)
+		{
+			auto c = io.InputQueueCharacters[i];
+
+
+			if (c != 0 && (c == '\n' || c >= 32))
+				text.insert(cursor, string(1, (char)c));
+			cursor++;
+		}
+		io.InputQueueCharacters.resize(0);
+	}
+
 
 
 }
@@ -240,116 +300,23 @@ void TextDisplay::drawCursor() {
 
 int TextDisplay::render() {
 
-	parent->drawList->AddText(info->font, info->font->FontSize, parent->pos + pos, ImGui::ColorConvertFloat4ToU32(info->color->operator ImVec4()), text.c_str());
+	if (text.length() != 0) {
 
-	
-
-
-	if (parent->focused) {
-
-		calculateIndexes();
-
-		drawCursor();
-
-		ImGuiIO& io = ImGui::GetIO();
-
-		ImVec2 mPos = io.MousePos;
-
-		cout << currentMouseLine() << endl;
-
-		
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-			cursor = currentMouseCharacter();
-		}
-
-		
-		if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
-		
-			text.insert(cursor, "\n");
-
-			cursor++;
-		
-		
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_Backspace)) {
-			if (cursor >= 1) {
-				text.erase(cursor - 1, 1);
-
-				cursor--;
-			}
-
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
-			if (cursor >= 1) cursor--;
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
-			if(cursor <= text.size() - 1) cursor++;
-
-
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow)) {
-
-			int cl = currentLine();
-
-			if (cl <= 0) {}
-			else {
-
-				int difference = indexes->at(cl) - indexes->at(cl - 1);
-
-				cursor -= difference;
-
-				cursor = max(cursor, 0);
-
-
-			}
-
-
-		}
-
-		if (ImGui::IsKeyPressed(ImGuiKey_DownArrow)) {
-
-			int cl = currentLine();
-
-			if (cl >= indexes->size() - 1) {}
-			else {
-			
-				int difference = indexes->at(cl + 1) - indexes->at(cl);
-
-				cursor += difference;
-
-
-				cursor = min(cursor, (int)text.size());
-
-			
-			}
-
-
-		}
-
-		if (!io.InputQueueCharacters.empty())
-		{
-			for (int i = 0; i < io.InputQueueCharacters.Size; i++)
-			{
-				auto c = io.InputQueueCharacters[i];
-
-
-				if (c != 0 && (c == '\n' || c >= 32))
-					text.insert(cursor, string(1, (char)c));
-					cursor++;
-			}
-			io.InputQueueCharacters.resize(0);
-		}
-		
-
-
+		parent->drawList->AddText(info->font, info->font->FontSize, parent->pos + pos, ImGui::ColorConvertFloat4ToU32(info->color->operator ImVec4()), text.c_str());
 	}
 
 
 
+		if (parent->focused) {
+
+			calculateIndexes();
+
+			drawCursor();
+
+			handleKeys();		
+
+
+		}
 
 	return 0;
 }
@@ -516,7 +483,7 @@ int main()
 	Window* window_2 = new Window("Another window", ImVec2(0, 300), ImVec2(300, 300));
 
 
-	window->addComponent(new TextDisplay("This is some text \n second line", ImVec2(20, 20), new TextInfo(font_1, red), window));
+	window->addComponent(new TextDisplay("This is some text\nsecond line", ImVec2(20, 20), new TextInfo(font_1, red), window));
 
 
 	

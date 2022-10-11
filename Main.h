@@ -26,6 +26,7 @@
 #include <regex>
 #include <map>
 #include <algorithm>
+#include <chrono>
 
 #include <sys/stat.h>
 #if defined (WIN32) || defined (_WIN32) || defined (__WIN32)
@@ -85,8 +86,6 @@ public:
 
 	void calculateIndexes();
 
-	float getLineWidth(int line);
-
 	std::string getLine(int line);
 
 	int currentMouseLine();
@@ -95,11 +94,11 @@ public:
 
 	void drawCursor();
 
-	float currentMouseLinePixel();
-
 	int currentMouseCharacter();
 
 	int render();
+
+	void handleKeys();
 
 
 };
