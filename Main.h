@@ -55,6 +55,8 @@ public:
 
 	Component(ImVec2 pos);
 
+	virtual void added_update();
+
 	virtual int render();
 
 };
@@ -68,6 +70,94 @@ public:
 	TextInfo(ImFont* font, ImColor* color);
 };
 
+
+class ColorData {
+public:
+
+	ImColor default_color;
+
+	ImColor number_color;
+
+	ImColor string_color;
+
+	ImColor keyword_color;
+
+	ImColor identifier_color;
+
+	std::map<std::string, ImColor> lists;
+
+	void addColor(std::string, ImColor);
+
+};
+
+
+class Object;
+class SybolTable;
+
+
+
+class SymbolTable {
+
+public:
+
+	std::vector<Object*>* objects;
+
+	SymbolTable();
+
+
+};
+
+class Object {
+
+public:
+	std::string name;
+
+	int type;
+
+	SymbolTable* table;
+
+	Object(std::string name, int type, SymbolTable* table = NULL);
+
+};
+
+
+class Lexer {
+
+public:
+
+	ColorData* data;
+
+	SymbolTable* table;
+
+	char currentChar;
+
+	std::vector< std::pair<std::string, ImColor>> tokens;
+
+	std::string last_thing;
+
+	bool in_class = false;
+
+	std::string str;
+
+	int index = 0;
+
+	void increment();
+
+	Lexer(std::string str, ColorData* data);
+
+	std::pair<std::string, ImColor> lexToken();
+
+	void reset(std::string);
+
+	//standard
+
+	//positional
+
+};
+
+
+
+
 class TextDisplay : public Component {
 public:
 	std::string text = "";
@@ -78,11 +168,15 @@ public:
 
 	std::vector<int>* indexes;
 
+	Lexer* lexer;
+
 	int lines = 0;
 
 	int cursor = 0;
 
 	TextDisplay(std::string text, ImVec2 pos, TextInfo* info, Window* parent);
+
+	void added_update();
 
 	void calculateIndexes();
 
@@ -99,6 +193,8 @@ public:
 	int render();
 
 	void handleKeys();
+
+	void drawText();
 
 
 };
@@ -135,7 +231,11 @@ public:
 
 	bool focused;
 
+	ColorData* colorData;
+
 	std::vector<Component*> components;
+
+	Application* parent;
 
 	ImDrawList* drawList;
 
@@ -156,8 +256,10 @@ public:
 
 	std::vector<Window*> windowList;
 
+	ColorData* colorData;
 
-	Application(std::string label, ImVec2 size);
+
+	Application(std::string label, ImVec2 size, ColorData* colorData);
 
 	int addWindow(Window* window);
 
